@@ -95,7 +95,7 @@ Queue metadata is optional.
 
 ### Scheduling
 
-Put the job into `:my-queue` (queue specified in job's metadata at `:byplay.core/queue` key):
+Put the job into `:my-queue` (as specified in job's metadata at `:byplay.core/queue` key):
 
 ```clj
 (b/schedule jdbc-conn #'my-job 1 2 3)
@@ -138,11 +138,7 @@ Because in rare cases a job may be started more than once.
 E.g. a worker may die in the middle of a job execution leaving this job in *new* state.
 
 Thanks to transactional guarantees, if job only updates the database then you don't have to worry about this problem.
-Just don't forget to use a connection from the job's context. 
-
-### Worker can throw exceptions in background threads.
-By default such exceptions silently kill a background thread. So it's a good practice to be ready to explicitly detect them with
-[Thread/setDefaultUncaughtExceptionHandler](https://stuartsierra.com/2015/05/27/clojure-uncaught-exceptions).
+Just don't forget to use a connection from the job context. 
 
 ### Use database connection pool to speed things up.
 See [funcool/clojure.jdbc docs](https://funcool.github.io/clojure.jdbc/latest/#connection-pool).
@@ -151,6 +147,11 @@ Otherwise Byplay will create a new connection to the database on every poll.
 ### Job signatures are important.
 If you schedule a job and than rename its namespace/function than worker won't find the job var and will fail the task.
 Also be careful with changing job args.
+
+### Worker can throw exceptions in background threads.
+It is possible that an exception can occur in the worker thread outside of a job function.
+By default such exceptions silently kill a background thread. So it's a good practice to be ready to explicitly detect them with
+[Thread/setDefaultUncaughtExceptionHandler](https://stuartsierra.com/2015/05/27/clojure-uncaught-exceptions).
 
 ## Documentation
 
