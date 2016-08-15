@@ -1,0 +1,109 @@
+{
+    "docs": [
+        {
+            "location": "/", 
+            "text": "Byplay\n\n\nClojure job queue on top of PostgreSQL 9.5.\n\n\nThe project is mostly inspired by \nQue\n,\n\nResque\n and \nCelery\n.\n\n\n\n\nFeatures\n\n\n\n\nDurability\n: queue can survive app restarts because it is stored inside a PostgreSQL table.\nAll done and failed jobs are left in a table\nso that at any time user is able inspect, retry or purge them manually.\n\n\nEmbedment\n: queue consumption worker can be easily started in a background thread.\n\n\nParallelism\n: queue can be consumed by several threads to better utilize multiple CPU cores.\nThe parallel queue consumption is based on \n\nFOR UPDATE/SKIP LOCKED\n feature from PostgreSQL 9.5.\n\n\nTransactional guarantees\n:\n\n\nEvery job is executed inside its own database transaction.\n\n\nIf job is marked \ndone\n than all its database statements were also committed.\n\n\nIn case of exception inside a job all job's database statements are rolled back \n(using an SQL savepoint) before marking a job \nfailed\n.\nThus if job is marked \nnew\n or \nfailed\n then none of its database statements were committed.   \n\n\n\n\n\n\nMultiple queues\n: jobs can be scheduled to different queues/tags.\nE.g. you can schedule heavy jobs into a separate \"slow\" queue/worker \nin order to not block an execution of more important jobs from a \"light\" queue. \n\n\n\n\nInstallation\n\n\nAdd dependency to your project:\n\n\n[byplay \n0.1.0\n]\n\n\n\n\nRequire a namespace:\n\n\n(ns my-app.core\n  (:require\n    [byplay.core :as b]\n    ,,,))\n\n\n\n\nQuickstart\n\n\nInitialization\n\n\nOn your app start setup Byplay table and the accompanying indexes in the database (it's safe to call this function more than once):\n\n\n(b/migrate jdbc-conn)\n\n\n\n\nHere \njdbc-conn\n is a \"raw\" \nJDBC\n connection.\nThere are different ways to obtain such instance:\n\n\n1) Via \nfuncool/clojure.jdbc\n JDBC wrapper:\n\n\n(with-open [conn (jdbc.core/connection dbspec)]\n  (let [jdbc-conn (jdbc.proto/connection conn)]\n    ,,,))\n\n\n\n\n2) Via \nclojure/java.jdbc\n JDBC wrapper:\n\n\n(clojure.java.jdbc/with-db-connection [conn db-spec]\n  (let [jdbc-conn (clojure.java.jdbc/db-connection conn)]\n    ,,,))\n\n\n\n\n3) Via JDBC datasource (e.g. \nHikariCP\n):\n\n\n(with-open [jdbc-conn (.getConnection datasource)]\n    ,,,)\n\n\n\n\nJob Definition\n\n\nDefine a job function:\n\n\n(defn ^{::b/queue :my-queue} my-job\n  [ctx x y z]\n  (do-something-in-job-transaction (:jdbc-conn ctx))\n  ,,,)\n\n\n\n\nHere \n(:jdbc-conn ctx)\n is a JDBC connection with the current transaction in progress.\n\n\nQueue metadata is optional.\n\n\nScheduling\n\n\nPut the job into \n:my-queue\n (queue specified in job's metadata at \n:byplay.core/queue\n key):\n\n\n(b/schedule jdbc-conn #'my-job 1 2 3)\n\n\n\n\nYou can also explicitly specify another queue using \nschedule-to\n:\n\n\n(b/schedule-to jdbc-conn :another-queue #'my-job 1 2 3)\n\n\n\n\nWorking\n\n\nDefine an instance of \nfuncool/clojure.jdbc\n \ndatabase specification, e.g.:\n\n\n(def dbspec {:classname   \norg.postgresql.Driver\n\n             :subprotocol \npostgresql\n\n             :subname     \n//localhost:5432/myapp\n})\n\n\n\n\nStart a background worker with 2 concurrent work threads, each polling the specified queue for a new job every 5 seconds: \n\n\n(b/start (b/new-worker dbspec {:threads-num      2\n                               :queues           [:my-queue]\n                               :polling-interval 5000\n                               :on-fail          (fn on-fail\n                                                   [exc {:keys [id job args queue state] :as _job}]\n                                                   ,,,)}))\n\n\n\n\non-fail\n function will be called if exception is thrown from the job.\n\n\nTips\n\n\nJobs should be idempotent whenever possible.\n\n\nBecause in rare cases a job may be started more than once.\nE.g. a worker may die in the middle of a job execution leaving this job in \nnew\n state.\n\n\nThanks to transactional guarantees, if job only updates the database then you don't have to worry about this problem.\nJust don't forget to use a connection from the job's context. \n\n\nWorker can throw exceptions in background threads.\n\n\nBy default such exceptions silently kill a background thread. So it's a good practice to be ready to explicitly detect them with\n\nThread/setDefaultUncaughtExceptionHandler\n.\n\n\nUse database connection pool to speed things up.\n\n\nSee \nfuncool/clojure.jdbc docs\n.\nOtherwise Byplay will create a new connection to the database on every poll.\n\n\nJob signatures are important.\n\n\nIf you schedule a job and than rename its namespace/function than worker won't find the job var and will fail the task.\nAlso be careful with changing job args.\n\n\nDocumentation\n\n\nMore information can be found at \nthe project site\n:\n\n\n\n\nAPI Reference\n\n\nDeveloper Guide\n\n\n\n\nLicense\n\n\nCopyright \u00a9 2016 Yuri Govorushchenko.\n\n\nReleased under an MIT license.", 
+            "title": "Readme"
+        }, 
+        {
+            "location": "/#byplay", 
+            "text": "Clojure job queue on top of PostgreSQL 9.5.  The project is mostly inspired by  Que , Resque  and  Celery .", 
+            "title": "Byplay"
+        }, 
+        {
+            "location": "/#features", 
+            "text": "Durability : queue can survive app restarts because it is stored inside a PostgreSQL table.\nAll done and failed jobs are left in a table\nso that at any time user is able inspect, retry or purge them manually.  Embedment : queue consumption worker can be easily started in a background thread.  Parallelism : queue can be consumed by several threads to better utilize multiple CPU cores.\nThe parallel queue consumption is based on  FOR UPDATE/SKIP LOCKED  feature from PostgreSQL 9.5.  Transactional guarantees :  Every job is executed inside its own database transaction.  If job is marked  done  than all its database statements were also committed.  In case of exception inside a job all job's database statements are rolled back \n(using an SQL savepoint) before marking a job  failed .\nThus if job is marked  new  or  failed  then none of its database statements were committed.       Multiple queues : jobs can be scheduled to different queues/tags.\nE.g. you can schedule heavy jobs into a separate \"slow\" queue/worker \nin order to not block an execution of more important jobs from a \"light\" queue.", 
+            "title": "Features"
+        }, 
+        {
+            "location": "/#installation", 
+            "text": "Add dependency to your project:  [byplay  0.1.0 ]  Require a namespace:  (ns my-app.core\n  (:require\n    [byplay.core :as b]\n    ,,,))", 
+            "title": "Installation"
+        }, 
+        {
+            "location": "/#quickstart", 
+            "text": "", 
+            "title": "Quickstart"
+        }, 
+        {
+            "location": "/#initialization", 
+            "text": "On your app start setup Byplay table and the accompanying indexes in the database (it's safe to call this function more than once):  (b/migrate jdbc-conn)  Here  jdbc-conn  is a \"raw\"  JDBC  connection.\nThere are different ways to obtain such instance:  1) Via  funcool/clojure.jdbc  JDBC wrapper:  (with-open [conn (jdbc.core/connection dbspec)]\n  (let [jdbc-conn (jdbc.proto/connection conn)]\n    ,,,))  2) Via  clojure/java.jdbc  JDBC wrapper:  (clojure.java.jdbc/with-db-connection [conn db-spec]\n  (let [jdbc-conn (clojure.java.jdbc/db-connection conn)]\n    ,,,))  3) Via JDBC datasource (e.g.  HikariCP ):  (with-open [jdbc-conn (.getConnection datasource)]\n    ,,,)", 
+            "title": "Initialization"
+        }, 
+        {
+            "location": "/#job-definition", 
+            "text": "Define a job function:  (defn ^{::b/queue :my-queue} my-job\n  [ctx x y z]\n  (do-something-in-job-transaction (:jdbc-conn ctx))\n  ,,,)  Here  (:jdbc-conn ctx)  is a JDBC connection with the current transaction in progress.  Queue metadata is optional.", 
+            "title": "Job Definition"
+        }, 
+        {
+            "location": "/#scheduling", 
+            "text": "Put the job into  :my-queue  (queue specified in job's metadata at  :byplay.core/queue  key):  (b/schedule jdbc-conn #'my-job 1 2 3)  You can also explicitly specify another queue using  schedule-to :  (b/schedule-to jdbc-conn :another-queue #'my-job 1 2 3)", 
+            "title": "Scheduling"
+        }, 
+        {
+            "location": "/#working", 
+            "text": "Define an instance of  funcool/clojure.jdbc  \ndatabase specification, e.g.:  (def dbspec {:classname    org.postgresql.Driver \n             :subprotocol  postgresql \n             :subname      //localhost:5432/myapp })  Start a background worker with 2 concurrent work threads, each polling the specified queue for a new job every 5 seconds:   (b/start (b/new-worker dbspec {:threads-num      2\n                               :queues           [:my-queue]\n                               :polling-interval 5000\n                               :on-fail          (fn on-fail\n                                                   [exc {:keys [id job args queue state] :as _job}]\n                                                   ,,,)}))  on-fail  function will be called if exception is thrown from the job.", 
+            "title": "Working"
+        }, 
+        {
+            "location": "/#tips", 
+            "text": "", 
+            "title": "Tips"
+        }, 
+        {
+            "location": "/#jobs-should-be-idempotent-whenever-possible", 
+            "text": "Because in rare cases a job may be started more than once.\nE.g. a worker may die in the middle of a job execution leaving this job in  new  state.  Thanks to transactional guarantees, if job only updates the database then you don't have to worry about this problem.\nJust don't forget to use a connection from the job's context.", 
+            "title": "Jobs should be idempotent whenever possible."
+        }, 
+        {
+            "location": "/#worker-can-throw-exceptions-in-background-threads", 
+            "text": "By default such exceptions silently kill a background thread. So it's a good practice to be ready to explicitly detect them with Thread/setDefaultUncaughtExceptionHandler .", 
+            "title": "Worker can throw exceptions in background threads."
+        }, 
+        {
+            "location": "/#use-database-connection-pool-to-speed-things-up", 
+            "text": "See  funcool/clojure.jdbc docs .\nOtherwise Byplay will create a new connection to the database on every poll.", 
+            "title": "Use database connection pool to speed things up."
+        }, 
+        {
+            "location": "/#job-signatures-are-important", 
+            "text": "If you schedule a job and than rename its namespace/function than worker won't find the job var and will fail the task.\nAlso be careful with changing job args.", 
+            "title": "Job signatures are important."
+        }, 
+        {
+            "location": "/#documentation", 
+            "text": "More information can be found at  the project site :   API Reference  Developer Guide", 
+            "title": "Documentation"
+        }, 
+        {
+            "location": "/#license", 
+            "text": "Copyright \u00a9 2016 Yuri Govorushchenko.  Released under an MIT license.", 
+            "title": "License"
+        }, 
+        {
+            "location": "/api/", 
+            "text": "It is a placeholder file, \nit will be replaced by API Reference docs generated by external tool.", 
+            "title": "API Reference"
+        }, 
+        {
+            "location": "/dev-guide/", 
+            "text": "Tests\n\n\nAutorun Clojure tests: \nlein test-refresh\n\n\nDocumentation\n\n\nProject uses \nMkDocs\n with \nCinder\n theme to generate documentation static site and \n\nCodox\n for API reference.\nTasks are scripted using \nPyInvoke\n.\n\n\nServe site pages locally with automatic build (but it won't work for index page): \nmkdocs serve\n\n\nBuild only site pages: \ninv mkdocs\n\n\nBuild API reference into site folder: \ninv api\n\n\nBuild the whole site: \ninv site\n\n\nDeploying\n\n\nDeploy to Clojars: \nlein deploy clojars\n\n\nDeploy site to gh-pages branch: \nghp-import -p site", 
+            "title": "Developer Guide"
+        }, 
+        {
+            "location": "/dev-guide/#tests", 
+            "text": "Autorun Clojure tests:  lein test-refresh", 
+            "title": "Tests"
+        }, 
+        {
+            "location": "/dev-guide/#documentation", 
+            "text": "Project uses  MkDocs  with  Cinder  theme to generate documentation static site and  Codox  for API reference.\nTasks are scripted using  PyInvoke .  Serve site pages locally with automatic build (but it won't work for index page):  mkdocs serve  Build only site pages:  inv mkdocs  Build API reference into site folder:  inv api  Build the whole site:  inv site", 
+            "title": "Documentation"
+        }, 
+        {
+            "location": "/dev-guide/#deploying", 
+            "text": "Deploy to Clojars:  lein deploy clojars  Deploy site to gh-pages branch:  ghp-import -p site", 
+            "title": "Deploying"
+        }
+    ]
+}

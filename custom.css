@@ -1,0 +1,15 @@
+/* highlight subsections in TOC */
+.bs-sidenav > .second-level {
+  margin-left: 1em;
+}
+
+.bs-sidenav > .third-level {
+  margin-left: 2em;
+}
+
+/* add scrolling to TOC */
+.bs-sidebar.well {
+    padding: 0;
+    max-height: 88vh;
+    overflow-y: auto;
+}
