@@ -186,7 +186,7 @@
   (Thread.
     #(while (not (Thread/interrupted))
       (on-poll)
-      
+
       (try
         (Thread/sleep interval-msec)
         (catch InterruptedException _
@@ -255,5 +255,8 @@
                                  (catch InterruptedException _
                                    ; ask all child threads to stop and wait for them
                                    (doseq [t threads] (.interrupt t))
-                                   (doseq [t threads] (.join t)))))]
+                                   (doseq [t threads] (.join t))
+
+                                   ; there's no need to re-interrupt the thread here, we simply allow it to exit
+                                   )))]
     (->Worker master-thread)))
