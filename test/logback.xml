@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>\t%boldCyan(%-5level) %white([%thread] %logger{36} - %msg%n)</pattern>
+        </encoder>
+    </appender>
+
+    <root level="all">
+        <appender-ref ref="stdout" />
+    </root>
+
+</configuration>

@@ -1,0 +1,18 @@
+{:up
+ ["CREATE TABLE byplay (
+  id BIGSERIAL PRIMARY KEY,
+  job TEXT NOT NULL,
+  args TEXT NOT NULL,
+  state SMALLINT NOT NULL,
+  queue TEXT NOT NULL)"
+
+  ; makes -reserve-job-from-any-queue much faster
+  "CREATE INDEX byplay_state_id_ix ON byplay (state, id)"
+
+  ; makes -reserve-job-from-queue much faster
+  "CREATE INDEX byplay_state_queue_id_ix ON byplay (state, queue, id)"]
+
+ :down
+ ["DROP INDEX byplay_state_queue_id_ix"
+  "DROP INDEX byplay_state_id_ix"
+  "DROP TABLE byplay"]}

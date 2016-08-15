@@ -1,0 +1,11 @@
+site_name: Byplay
+site_description: Project documentation for Byplay library.
+
+repo_url: https://github.com/metametadata/byplay/
+
+theme: cinder
+
+pages:
+- Readme: 'index.md'
+- API Reference: 'api/index.md'
+- Developer Guide: 'dev-guide.md'

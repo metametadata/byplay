@@ -1,0 +1,16 @@
+/.idea
+/byplay.iml
+/target
+/classes
+/checkouts
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+.hgignore
+.hg/
+*.pyc
+.DS_Store
+/site/
