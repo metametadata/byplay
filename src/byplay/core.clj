@@ -184,13 +184,13 @@
   "Creates a thread which will infinitely call the function with the specified interval."
   [on-poll interval-msec]
   (Thread.
-    #(try
-      (while (not (Thread/interrupted))
-        (on-poll)
-        (Thread/sleep interval-msec))
-
-      ; allow thread to exit on interruption
-      (catch InterruptedException _))))
+    #(while (not (Thread/interrupted))
+      (on-poll)
+      
+      (try
+        (Thread/sleep interval-msec)
+        (catch InterruptedException _
+          (.interrupt (Thread/currentThread)))))))
 
 (defn ^:no-doc -work-threads
   "Creates several working threads."
