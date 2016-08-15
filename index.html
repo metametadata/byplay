@@ -149,11 +149,11 @@
             
                 <li class="third-level"><a href="#jobs-should-be-idempotent-whenever-possible">Jobs should be idempotent whenever possible.</a></li>
             
-                <li class="third-level"><a href="#worker-can-throw-exceptions-in-background-threads">Worker can throw exceptions in background threads.</a></li>
-            
                 <li class="third-level"><a href="#use-database-connection-pool-to-speed-things-up">Use database connection pool to speed things up.</a></li>
             
                 <li class="third-level"><a href="#job-signatures-are-important">Job signatures are important.</a></li>
+            
+                <li class="third-level"><a href="#worker-can-throw-exceptions-in-background-threads">Worker can throw exceptions in background threads.</a></li>
             
         
             <li class="second-level"><a href="#documentation">Documentation</a></li>
@@ -241,7 +241,7 @@ There are different ways to obtain such instance:</p>
 <p>Here <code>(:jdbc-conn ctx)</code> is a JDBC connection with the current transaction in progress.</p>
 <p>Queue metadata is optional.</p>
 <h3 id="scheduling">Scheduling</h3>
-<p>Put the job into <code>:my-queue</code> (queue specified in job's metadata at <code>:byplay.core/queue</code> key):</p>
+<p>Put the job into <code>:my-queue</code> (as specified in job's metadata at <code>:byplay.core/queue</code> key):</p>
 <pre><code class="clj">(b/schedule jdbc-conn #'my-job 1 2 3)
 </code></pre>
 
@@ -272,16 +272,17 @@ database specification, e.g.:</p>
 <p>Because in rare cases a job may be started more than once.
 E.g. a worker may die in the middle of a job execution leaving this job in <em>new</em> state.</p>
 <p>Thanks to transactional guarantees, if job only updates the database then you don't have to worry about this problem.
-Just don't forget to use a connection from the job's context. </p>
-<h3 id="worker-can-throw-exceptions-in-background-threads">Worker can throw exceptions in background threads.</h3>
-<p>By default such exceptions silently kill a background thread. So it's a good practice to be ready to explicitly detect them with
-<a href="https://stuartsierra.com/2015/05/27/clojure-uncaught-exceptions">Thread/setDefaultUncaughtExceptionHandler</a>.</p>
+Just don't forget to use a connection from the job context. </p>
 <h3 id="use-database-connection-pool-to-speed-things-up">Use database connection pool to speed things up.</h3>
 <p>See <a href="https://funcool.github.io/clojure.jdbc/latest/#connection-pool">funcool/clojure.jdbc docs</a>.
 Otherwise Byplay will create a new connection to the database on every poll.</p>
 <h3 id="job-signatures-are-important">Job signatures are important.</h3>
 <p>If you schedule a job and than rename its namespace/function than worker won't find the job var and will fail the task.
 Also be careful with changing job args.</p>
+<h3 id="worker-can-throw-exceptions-in-background-threads">Worker can throw exceptions in background threads.</h3>
+<p>It is possible that an exception can occur in the worker thread outside of a job function.
+By default such exceptions silently kill a background thread. So it's a good practice to be ready to explicitly detect them with
+<a href="https://stuartsierra.com/2015/05/27/clojure-uncaught-exceptions">Thread/setDefaultUncaughtExceptionHandler</a>.</p>
 <h2 id="documentation">Documentation</h2>
 <p>More information can be found at <a href="http://metametadata.github.io/byplay/">the project site</a>:</p>
 <ul>
@@ -343,5 +344,5 @@ Also be careful with changing job args.</p>
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-08-15 14:05:12.850804
+Build Date UTC : 2016-08-15 14:20:29.138093
 -->
