@@ -107,7 +107,7 @@
         job-delay 10
         threads-num 4
         polling-interval 10]
-    (schedule-jobs jobs-num #'j/blocking-job job-delay)
+    (schedule-jobs jobs-num #'j/heavy-job job-delay)
 
     ; act
     (let [[worker _acks elapsed] (start-worker ds {:queues           queues
@@ -143,7 +143,7 @@
         expected-elapsed 235]
     (assert (< expected-elapsed max-possible-elapsed) "self test")
 
-    (schedule-jobs jobs-num #'j/blocking-job job-delay)
+    (schedule-jobs jobs-num #'j/heavy-job job-delay)
 
     ; act
     (let [worker-stopped? (atom false)
