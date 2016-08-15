@@ -1,6 +1,6 @@
 # Byplay
 
-Clojure job queue on top of PostgreSQL 9.5.
+Clojure background job queue on top of PostgreSQL 9.5.
 
 The project is mostly inspired by [Que](https://github.com/chanks/que),
 [Resque](https://github.com/resque/resque/) and [Celery](https://github.com/celery/celery).

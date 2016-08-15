@@ -1,6 +1,6 @@
 (defproject
   byplay "0.1.0"
-  :description "Clojure job queue on top of PostgreSQL 9.5."
+  :description "Clojure background job queue on top of PostgreSQL 9.5."
   :url "https://github.com/metametadata/byplay"
   :license {:name "MIT" :url "http://opensource.org/licenses/MIT"}
 
