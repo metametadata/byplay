@@ -195,13 +195,15 @@
 (defn ^:no-doc -work-threads
   "Creates several working threads."
   [dbspec queues threads-num polling-interval-msec on-ack]
-  (doall
-    (for [_ (range threads-num)]
-      (-polling-thread (fn on-poll []
-                         (with-open [conn (jdbc/connection dbspec)]
-                           (-> (work-once (jdbc.proto/connection conn) queues)
-                               on-ack)))
-                       polling-interval-msec))))
+  (letfn [(on-poll []
+            (with-open [conn (jdbc/connection dbspec)]
+              (-> conn
+                  jdbc.proto/connection
+                  (work-once queues)
+                  on-ack)))]
+    (doall
+      (for [_ (range threads-num)]
+        (-polling-thread on-poll polling-interval-msec)))))
 
 (defn ^:no-doc -println-err
   "As in http://yellerapp.com/posts/2014-12-11-14-race-condition-in-clojure-println.html"
