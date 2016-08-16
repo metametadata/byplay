@@ -160,7 +160,7 @@
           _stopper (future
                      (Thread/sleep expected-elapsed)
                      (assert (= :running (b/state worker)) "self test")
-                     (b/stop worker))
+                     (b/interrupt worker))
           [_ elapsed] (debug-time
                         (str "Work on " threads-num " threads")
                         (elapse #(doto worker b/start b/join)))
@@ -248,7 +248,7 @@
   (let [worker (b/new-worker ds {:queues [:test-queue]})
         err-str (with-err-str (b/start worker)
                               (sleep-politely 100)
-                              (b/stop worker))]
+                              (b/interrupt worker))]
     ; assert
     (is (re-find #"^Job failed: \{:id 1, :job \"unit\.fixtures\.jobs/bad-job\".*\nException"
                  err-str))))

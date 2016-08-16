@@ -157,7 +157,11 @@
 ;; Worker
 (defprotocol WorkerProtocol
   (start [_] "Starts working in background threads.")
-  (stop [_] "Asks the worker to gracefully finish working between polls. Note that this cannot kill a long runnning job.")
+  (interrupt [_]
+    "Asks the worker to gracefully finish working.
+    Worker will wait for finishing of all currently executed jobs.
+    You can also call `join` after `interrupt` to block your thread until worker is stopped.
+    You cannot start the worker again after interruption.")
   (state [_]
     "Returns the current worker state:
 
@@ -169,7 +173,7 @@
 (defrecord Worker [master-thread]
   WorkerProtocol
   (start [_] (.start master-thread))
-  (stop [_] (.interrupt master-thread))
+  (interrupt [_] (.interrupt master-thread))
   (state [_]
     (condp = (.getState master-thread)
       Thread$State/NEW :new
