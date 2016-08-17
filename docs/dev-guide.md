@@ -4,7 +4,7 @@ Tests require PostgreSQL running at `localhost:5432`.
 
 Autorun Clojure tests: `lein test-refresh`
 
-Run a manual shutdown test: `lein trampoline test :shutdown-test`
+Run a graceful shutdown test: `lein test :shutdown-test`
 
 # Documentation
 
