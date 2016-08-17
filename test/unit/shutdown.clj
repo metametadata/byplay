@@ -27,7 +27,7 @@
 
   (let [worker (b/new-worker ds {:threads-num      1
                                  :polling-interval 1000
-                                 :on-fail          (fn [exc _job]
+                                 :on-fail          (fn [_worker exc _job]
                                                      (assert nil (str "job unexpectedly failed with exception:\n" (pr-str exc))))
                                  :on-ack           (fn [worker ack]
                                                      (println "ACK:" (pr-str ack))

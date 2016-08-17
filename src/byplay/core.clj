@@ -226,7 +226,7 @@
   - `:queues` - vector of queues to poll (order matters), default is `nil` which means that worker can take a job from any queue
   - `:threads-num` - number of worker threads, default is 1
   - `:polling-interval` - in msec, default is 5000
-  - `:on-fail` - a function with signature `(on-fail exception job-row-map)` executed on exception inside a job,
+  - `:on-fail` - a function with signature `(on-fail worker exception job-row-map)` executed on exception inside a job,
    by default it prints a message into stderr
   - `:on-ack` - a function `(on-ack worker ack)` will be executed in child threads with the result of every
   [[work-once]] call. By default does nothing and is mostly useful for testing.
@@ -236,19 +236,19 @@
   (let [default-config {:queues           nil
                         :threads-num      1
                         :polling-interval 5000
-                        :on-fail          (fn on-fail-default [exc job]
+                        :on-fail          (fn on-fail-default [_worker exc job]
                                             (-println-err "Job failed:" (pr-str job) "\nException:" (pr-str exc)))
                         :on-ack           (fn on-ack-default [_ _])}
         {:keys [queues threads-num polling-interval on-fail on-ack]} (merge default-config config)
-        worker (atom nil)
+        worker-atom (atom nil)
         on-ack-wrapper (fn on-ack-wrapper [ack]
                          ; notify about a failure if there's any
                          (when (vector? ack)
                            (let [[exception failed-job] ack]
-                             (on-fail exception failed-job)))
+                             (on-fail @worker-atom exception failed-job)))
 
                          ; and ack anyway
-                         (on-ack @worker ack))
+                         (on-ack @worker-atom ack))
         threads (-work-threads dbspec
                                queues
                                threads-num
@@ -267,4 +267,4 @@
                                    ; simply allow master thread to exit, there's no need to re-interrupt the thread here because
                                    ; there's no code higher up on the stack that needs to know about this thread's interruption
                                    )))]
-    (reset! worker (->Worker master-thread))))
+    (reset! worker-atom (->Worker master-thread))))

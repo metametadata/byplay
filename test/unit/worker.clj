@@ -26,7 +26,7 @@
   [dbspec config]
   (let [acks (atom [])
         worker (b/new-worker dbspec
-                             (merge config {:on-fail (fn on-fail [_exc _job]
+                             (merge config {:on-fail (fn on-fail [_worker _exc _job]
                                                        (assert nil "job fail is not expected"))
                                             :on-ack  (fn on-ack [_worker ack]
                                                        (if (nil? ack)
@@ -151,7 +151,7 @@
                                {:queues           [:test-queue]
                                 :threads-num      threads-num
                                 :polling-interval polling-interval
-                                :on-fail          (fn on-fail [_exc job]
+                                :on-fail          (fn on-fail [_worker _exc job]
                                                     ; using (assert ...) because (is ...) may not work in a thread
                                                     (assert nil (str "stopping a worker should not fail any job but got: " (pr-str job))))
                                 :on-ack           (fn on-ack [worker ack]
@@ -193,22 +193,24 @@
     ; act
     (let [fails (atom [])                                   ; vector of [exc job] pairs
           acks (atom [])
-          worker (b/new-worker ds
-                               {:queues           [:test-queue]
-                                :threads-num      threads-num
-                                :polling-interval polling-interval
-                                :on-fail          (fn on-fail [exc job]
-                                                    (swap! fails conj [exc job]))
-                                :on-ack           (fn on-ack [_worker ack]
-                                                    (if (nil? ack)
-                                                      (.interrupt (Thread/currentThread)) ; stop thread on queue exhaustion
-                                                      (swap! acks conj ack)))})]
+          worker-atom (atom nil)]
+      (reset! worker-atom (b/new-worker ds
+                                        {:queues           [:test-queue]
+                                         :threads-num      threads-num
+                                         :polling-interval polling-interval
+                                         :on-fail          (fn on-fail [worker exc job]
+                                                             (assert (= worker @worker-atom) "worker must be passed into a callback`")
+                                                             (swap! fails conj [exc job]))
+                                         :on-ack           (fn on-ack [_worker ack]
+                                                             (if (nil? ack)
+                                                               (.interrupt (Thread/currentThread)) ; stop thread on queue exhaustion
+                                                               (swap! acks conj ack)))}))
       (debug-time
         (str "Work on " threads-num " threads")
-        (doto worker b/start b/join))
+        (doto @worker-atom b/start b/join))
 
       ; assert
-      (is (= :terminated (b/state worker)) "worker must correctly report its state")
+      (is (= :terminated (b/state @worker-atom)) "worker must correctly report its state")
 
       (is (= jobs-num (count @fails)))
       (is (every? (fn expected-fail?
