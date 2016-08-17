@@ -131,6 +131,22 @@ Start a background worker with 2 concurrent work threads, each polling the speci
 
 `on-fail` function will be called if exception is thrown from the job.
 
+### Shutdown
+
+You can ask a worker to finish all currently running jobs and stop polling a database with `stop` method.
+For example this is how a worker can be gracefully stopped in 
+[the application shutdown hook](https://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html#addShutdownHook\(java.lang.Thread\)):
+
+```clj
+(.addShutdownHook (Runtime/getRuntime)
+                      (Thread. #(do
+                                 ; stop the worker (before any other services which still running jobs may depend on)
+                                 (doto worker b/interrupt b/join)
+                                 
+                                 ; stop other services
+                                 ,,,)))
+```
+
 ## Tips
 
 ### Jobs should be idempotent whenever possible.
