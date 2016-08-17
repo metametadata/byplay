@@ -133,7 +133,7 @@ Start a background worker with 2 concurrent work threads, each polling the speci
 
 ### Shutdown
 
-You can ask a worker to finish all currently running jobs and stop polling a database with `stop` method.
+You can ask a worker to finish all currently running jobs and stop polling a database with `interrupt` method.
 For example this is how a worker can be gracefully stopped in 
 [the application shutdown hook](https://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html#addShutdownHook\(java.lang.Thread\)):
 
