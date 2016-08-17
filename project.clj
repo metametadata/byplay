@@ -9,7 +9,7 @@
                  [funcool/clojure.jdbc "0.9.0"]
                  [org.postgresql/postgresql "9.4.1209"]
 
-                 [ragtime "0.6.0"]]
+                 [ragtime "0.6.3"]]
 
   :profiles {:test {:dependencies [[clj-fakes "0.7.0"]
 
