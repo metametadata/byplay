@@ -144,6 +144,8 @@
             
                 <li class="third-level"><a href="#working">Working</a></li>
             
+                <li class="third-level"><a href="#shutdown">Shutdown</a></li>
+            
         
             <li class="second-level"><a href="#tips">Tips</a></li>
             
@@ -262,11 +264,24 @@ database specification, e.g.:</p>
                                :queues           [:my-queue]
                                :polling-interval 5000
                                :on-fail          (fn on-fail
-                                                   [exc {:keys [id job args queue state] :as _job}]
+                                                   [worker exc {:keys [id job args queue state] :as _job}]
                                                    ,,,)}))
 </code></pre>
 
 <p><code>on-fail</code> function will be called if exception is thrown from the job.</p>
+<h3 id="shutdown">Shutdown</h3>
+<p>You can ask a worker to finish all currently running jobs and stop polling a database with <code>interrupt</code> method.
+For example this is how a worker can be gracefully stopped in 
+<a href="https://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html#addShutdownHook(java.lang.Thread)">the application shutdown hook</a>:</p>
+<pre><code class="clj">(.addShutdownHook (Runtime/getRuntime)
+                      (Thread. #(do
+                                 ; stop the worker (before any other services which still running jobs may depend on)
+                                 (doto worker b/interrupt b/join)
+
+                                 ; stop other services
+                                 ,,,)))
+</code></pre>
+
 <h2 id="tips">Tips</h2>
 <h3 id="jobs-should-be-idempotent-whenever-possible">Jobs should be idempotent whenever possible.</h3>
 <p>Because in rare cases a job may be started more than once.
@@ -344,5 +359,5 @@ By default such exceptions silently kill a background thread. So it's a good pra
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-08-15 14:26:15.968822
+Build Date UTC : 2016-08-17 20:05:48.634956
 -->
