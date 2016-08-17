@@ -15,7 +15,7 @@
   (with-open [jdbc-conn (.getConnection ds)]
     (b/schedule jdbc-conn #'j/good-job))
 
-  (b/new-worker ds {:on-ack (fn on-ack [_ack]
+  (b/new-worker ds {:on-ack (fn on-ack [_worker _ack]
                               (assert nil "job must not be processed until worker is started"))})
 
   (sleep-politely 50))
@@ -28,7 +28,7 @@
         worker (b/new-worker dbspec
                              (merge config {:on-fail (fn on-fail [_exc _job]
                                                        (assert nil "job fail is not expected"))
-                                            :on-ack  (fn on-ack [ack]
+                                            :on-ack  (fn on-ack [_worker ack]
                                                        (if (nil? ack)
                                                          (.interrupt (Thread/currentThread)) ; stop thread on queue exhaustion
                                                          (swap! acks conj ack)))}))
@@ -154,8 +154,9 @@
                                 :on-fail          (fn on-fail [_exc job]
                                                     ; using (assert ...) because (is ...) may not work in a thread
                                                     (assert nil (str "stopping a worker should not fail any job but got: " (pr-str job))))
-                                :on-ack           (fn on-ack [ack]
+                                :on-ack           (fn on-ack [worker ack]
                                                     (assert (not (nil? ack)) "test scenario should not allow queue exhaustion")
+                                                    (assert (= :running (b/state worker)) "worker must correctly report its state on ack")
                                                     (assert (not @worker-stopped?) "child thread must not work after worker is stopped"))})
           _stopper (future
                      (Thread/sleep expected-elapsed)
@@ -198,7 +199,7 @@
                                 :polling-interval polling-interval
                                 :on-fail          (fn on-fail [exc job]
                                                     (swap! fails conj [exc job]))
-                                :on-ack           (fn on-ack [ack]
+                                :on-ack           (fn on-ack [_worker ack]
                                                     (if (nil? ack)
                                                       (.interrupt (Thread/currentThread)) ; stop thread on queue exhaustion
                                                       (swap! acks conj ack)))})]
@@ -222,8 +223,8 @@
   "worker: on-ack will be called after on-fail"
   (f/with-fakes
     (let [on-fail (f/recorded-fake)
-          on-ack (f/recorded-fake [[f/any?] (fn [_ack]
-                                              (.interrupt (Thread/currentThread)))])]
+          on-ack (f/recorded-fake [[f/any? f/any?] (fn [_worker _ack]
+                                                     (.interrupt (Thread/currentThread)))])]
       (with-open [jdbc-conn (.getConnection ds)]
         (b/schedule jdbc-conn #'j/bad-job "expected exception"))
 

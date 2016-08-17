@@ -94,7 +94,7 @@
 (defmacro -deftest-verbose
   "The same as deftest but name is defined using a string.
   Name is also added to the test metadata at :verbose-name.
-  Instead of just a name you can also porvide a pair: [test-metadata name].
+  Instead of just a name you can also provide a pair: [test-metadata name].
 
   Inspired by: https://gist.github.com/mybuddymichael/4425558"
   [name-or-meta-name-pair & body]

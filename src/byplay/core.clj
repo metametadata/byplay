@@ -228,7 +228,7 @@
   - `:polling-interval` - in msec, default is 5000
   - `:on-fail` - a function with signature `(on-fail exception job-row-map)` executed on exception inside a job,
    by default it prints a message into stderr
-  - `:on-ack` - a function `(on-ack ack)` will be executed in child threads with the result of every
+  - `:on-ack` - a function `(on-ack worker ack)` will be executed in child threads with the result of every
   [[work-once]] call. By default does nothing and is mostly useful for testing.
   If `on-fail` is specified then in case of a failed job `on-ack` will be executed after `on-fail`.
   You can `(.interrupt (Thread/currentThread))` in `on-ack` to stop working in the particular child thread."
@@ -238,8 +238,9 @@
                         :polling-interval 5000
                         :on-fail          (fn on-fail-default [exc job]
                                             (-println-err "Job failed:" (pr-str job) "\nException:" (pr-str exc)))
-                        :on-ack           (fn on-ack-default [_])}
+                        :on-ack           (fn on-ack-default [_ _])}
         {:keys [queues threads-num polling-interval on-fail on-ack]} (merge default-config config)
+        worker (atom nil)
         on-ack-wrapper (fn on-ack-wrapper [ack]
                          ; notify about a failure if there's any
                          (when (vector? ack)
@@ -247,7 +248,7 @@
                              (on-fail exception failed-job)))
 
                          ; and ack anyway
-                         (on-ack ack))
+                         (on-ack @worker ack))
         threads (-work-threads dbspec
                                queues
                                threads-num
@@ -266,4 +267,4 @@
                                    ; simply allow master thread to exit, there's no need to re-interrupt the thread here because
                                    ; there's no code higher up on the stack that needs to know about this thread's interruption
                                    )))]
-    (->Worker master-thread)))
+    (reset! worker (->Worker master-thread))))
