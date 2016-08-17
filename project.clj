@@ -29,6 +29,9 @@
 
   :test-refresh {:notify-command ["terminal-notifier" "-title" "Tests" "-message"]}
 
+  :test-selectors {:default       (complement :shutdown-test)
+                   :shutdown-test :shutdown-test}
+
   :codox {:source-uri   "https://github.com/metametadata/byplay/blob/master/{filepath}#L{line}"
           :language     :clojure
           :source-paths ["src"]

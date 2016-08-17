@@ -263,6 +263,7 @@
                                    (doseq [t threads] (.interrupt t))
                                    (doseq [t threads] (.join t))
 
-                                   ; there's no need to re-interrupt the thread here, we simply allow it to exit
+                                   ; simply allow master thread to exit, there's no need to re-interrupt the thread here because
+                                   ; there's no code higher up on the stack that needs to know about this thread's interruption
                                    )))]
     (->Worker master-thread)))

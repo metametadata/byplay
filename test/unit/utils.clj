@@ -94,17 +94,26 @@
 (defmacro -deftest-verbose
   "The same as deftest but name is defined using a string.
   Name is also added to the test metadata at :verbose-name.
+  Instead of just a name you can also porvide a pair: [test-metadata name].
+
   Inspired by: https://gist.github.com/mybuddymichael/4425558"
-  [name-string & body]
-  (let [name-symbol (-> name-string
+  [name-or-meta-name-pair & body]
+  (let [meta-name-pair? (sequential? name-or-meta-name-pair)
+        metadata (when meta-name-pair?
+                   (first name-or-meta-name-pair))
+        name (if meta-name-pair?
+               (second name-or-meta-name-pair)
+               name-or-meta-name-pair)
+        name-symbol (-> name
                         string/lower-case
                         (string/replace #"\W" "-")
                         (string/replace #"-+" "-")
                         (string/replace #"-$" "")
-                        symbol)]
+                        symbol
+                        (with-meta metadata))]
     `(alter-meta!
        (clojure.test/deftest ~name-symbol ~@body)
-       assoc :verbose-name ~name-string)))
+       assoc :verbose-name ~name)))
 
 (defn -test-with-thread-exception-detection
   [f]
