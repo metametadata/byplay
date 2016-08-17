@@ -30,7 +30,7 @@ in order to not block an execution of more important jobs from a "light" queue.
 Add dependency to your project:
 
 ```clj
-[byplay "0.1.0"]
+[byplay "0.2.0"]
 ```
 
 Require a namespace:
