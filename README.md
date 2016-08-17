@@ -125,7 +125,7 @@ Start a background worker with 2 concurrent work threads, each polling the speci
                                :queues           [:my-queue]
                                :polling-interval 5000
                                :on-fail          (fn on-fail
-                                                   [exc {:keys [id job args queue state] :as _job}]
+                                                   [worker exc {:keys [id job args queue state] :as _job}]
                                                    ,,,)}))
 ```
 
