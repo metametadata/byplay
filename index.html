@@ -131,6 +131,9 @@
             <li class="second-level"><a href="#features">Features</a></li>
             
         
+            <li class="second-level"><a href="#anti-features">Anti-Features</a></li>
+            
+        
             <li class="second-level"><a href="#installation">Installation</a></li>
             
         
@@ -171,6 +174,8 @@
 
 <h1 id="byplay">Byplay</h1>
 <p>Clojure background job queue on top of PostgreSQL 9.5.</p>
+<p>It allows creating background jobs, placing those jobs on multiple queues, and processing them later.
+Background jobs can be any named Clojure function.</p>
 <p>The project is mostly inspired by <a href="https://github.com/chanks/que">Que</a>,
 <a href="https://github.com/resque/resque/">Resque</a> and <a href="https://github.com/celery/celery">Celery</a>.</p>
 <p><a href="https://clojars.org/byplay"><img alt="Clojars Project" src="https://img.shields.io/clojars/v/byplay.svg" /></a></p>
@@ -180,21 +185,36 @@
 All done and failed jobs are left in a table
 so that at any time user is able inspect, retry or purge them manually.</li>
 <li><strong>Embedment</strong>: queue consumption worker can be easily started in a background thread.</li>
-<li><strong>Parallelism</strong>: queue can be consumed by several threads to better utilize multiple CPU cores.
-The parallel queue consumption is based on 
+<li><strong>Parallelism</strong>: queue can be consumed by several threads on different machines to better utilize multiple CPU cores.
+The parallel queue consumption is based on a new
 <a href="http://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/">FOR UPDATE/SKIP LOCKED</a> feature from PostgreSQL 9.5.</li>
-<li><strong>Transactional guarantees</strong>:<ul>
+<li><strong>Transactional guarantees</strong>:  <ul>
 <li>Every job is executed inside its own database transaction.</li>
-<li>If job is marked <em>done</em> than all its database statements were also committed.</li>
+<li>If a job is marked <em>done</em> than all its database statements have been committed.</li>
 <li>In case of exception inside a job all job's database statements are rolled back 
-(using an SQL savepoint) before marking a job <em>failed</em>.
-Thus if job is marked <em>new</em> or <em>failed</em> then none of its database statements were committed.   </li>
+and a job is marked <em>failed</em>. Thus if a job is marked <em>new</em> or <em>failed</em> then 
+none of its database statements have been committed yet.</li>
+<li>Scheduling can be executed in a same transaction a data needed for a job is committed.
+So that a worker will not pick up the job before the database commits.</li>
 </ul>
 </li>
 <li><strong>Multiple queues</strong>: jobs can be scheduled to different queues/tags.
 E.g. you can schedule heavy jobs into a separate "slow" queue/worker 
-in order to not block an execution of more important jobs from a "light" queue. </li>
+in order to not block an execution of more important jobs from a "light" queue.</li>
+<li><strong>Fewer dependencies</strong>: if you already use PostgreSQL, a separate queue (Redis, RabbitMQ, etc.) is another moving part that can break.</li>
+<li><strong>Small</strong>: the implementation with docstrings is less than 300 LOC.</li>
 </ul>
+<h2 id="anti-features">Anti-Features</h2>
+<p>It hasn't been proven yet, but Byplay can be susceptible to the same problem as described in Que docs:</p>
+<blockquote>
+<p>Que's job table undergoes a lot of churn when it is under high load, and like any heavily-written table, 
+is susceptible to bloat and slowness if Postgres isn't able to clean it up. The most common cause of this is 
+long-running transactions, so it's recommended to try to keep all transactions against the database housing 
+Que's job table as short as possible. This is good advice to remember for any high-activity database, 
+but bears emphasizing when using tables that undergo a lot of writes.</p>
+</blockquote>
+<p>This PostgreSQL issue is explained in more detail in the article 
+<a href="https://brandur.org/postgres-queues">"Postgres Job Queues &amp; Failure By MVCC"</a>.</p>
 <h2 id="installation">Installation</h2>
 <p>Add dependency to your project:</p>
 <pre><code class="clj">[byplay &quot;0.2.0&quot;]
@@ -275,7 +295,7 @@ For example this is how a worker can be gracefully stopped in
 <a href="https://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html#addShutdownHook(java.lang.Thread)">the application shutdown hook</a>:</p>
 <pre><code class="clj">(.addShutdownHook (Runtime/getRuntime)
                       (Thread. #(do
-                                 ; stop the worker (before any other services which still running jobs may depend on)
+                                 ; stop the worker before other services (to not break jobs in progress)
                                  (doto worker b/interrupt b/join)
 
                                  ; stop other services
@@ -359,5 +379,5 @@ By default such exceptions silently kill a background thread. So it's a good pra
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-08-17 21:39:55.737807
+Build Date UTC : 2016-08-18 16:40:44.133838
 -->
