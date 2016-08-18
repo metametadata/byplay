@@ -244,6 +244,23 @@
           #"Assert failed: \(nil\? \(namespace"
           (b/schedule jdbc-conn #'j/job-with-namespaced-queue)))))
 
+(def ^{::b/queue :test-queue} ifn-job
+  (reify clojure.lang.IFn
+    (applyTo
+      [_ [ctx data]]
+      (insert-aux-data! (:jdbc-conn ctx) data))))
+
+(defdbtest
+  "reified IFn can be used as a job"
+  (with-open [jdbc-conn (.getConnection ds)]
+    (let [expected-aux-data "ifn-job data"]
+      ; act
+      (b/schedule jdbc-conn #'ifn-job expected-aux-data)
+
+      ; assert
+      (is (ack-done? (b/work-once jdbc-conn)))
+      (is-aux-data-committed jdbc-conn expected-aux-data))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; several queues ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defdbtest
   "schedule and independently process three jobs off different queues"
