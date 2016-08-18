@@ -2,6 +2,9 @@
 
 Clojure background job queue on top of PostgreSQL 9.5.
 
+It allows creating background jobs, placing those jobs on multiple queues, and processing them later.
+Background jobs can be any named Clojure function.
+
 The project is mostly inspired by [Que](https://github.com/chanks/que),
 [Resque](https://github.com/resque/resque/) and [Celery](https://github.com/celery/celery).
 
@@ -12,18 +15,33 @@ The project is mostly inspired by [Que](https://github.com/chanks/que),
 All done and failed jobs are left in a table
 so that at any time user is able inspect, retry or purge them manually.
 - **Embedment**: queue consumption worker can be easily started in a background thread.
-- **Parallelism**: queue can be consumed by several threads to better utilize multiple CPU cores.
-The parallel queue consumption is based on 
+- **Parallelism**: queue can be consumed by several threads on different machines to better utilize multiple CPU cores.
+The parallel queue consumption is based on a new
 [FOR UPDATE/SKIP LOCKED](http://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/) feature from PostgreSQL 9.5.
-- **Transactional guarantees**:
+- **Transactional guarantees**:  
     - Every job is executed inside its own database transaction.
-    - If job is marked *done* than all its database statements were also committed.
+    - If a job is marked *done* than all its database statements have been committed.
     - In case of exception inside a job all job's database statements are rolled back 
-    (using an SQL savepoint) before marking a job *failed*.
-    Thus if job is marked *new* or *failed* then none of its database statements were committed.   
+    and a job is marked *failed*. Thus if a job is marked *new* or *failed* then 
+    none of its database statements have been committed yet.
+    - Scheduling can be executed in a same transaction a data needed for a job is committed.
+    So that a worker will not pick up the job before the database commits.
 - **Multiple queues**: jobs can be scheduled to different queues/tags.
 E.g. you can schedule heavy jobs into a separate "slow" queue/worker 
-in order to not block an execution of more important jobs from a "light" queue. 
+in order to not block an execution of more important jobs from a "light" queue.
+- **Fewer dependencies**: if you already use PostgreSQL, a separate queue (Redis, RabbitMQ, etc.) is another moving part that can break.
+- **Small**: the implementation with docstrings is less than 300 LOC.
+
+## Anti-Features
+It hasn't been proven yet, but Byplay can be susceptible to the same problem as described in Que docs:
+> Que's job table undergoes a lot of churn when it is under high load, and like any heavily-written table, 
+is susceptible to bloat and slowness if Postgres isn't able to clean it up. The most common cause of this is 
+long-running transactions, so it's recommended to try to keep all transactions against the database housing 
+Que's job table as short as possible. This is good advice to remember for any high-activity database, 
+but bears emphasizing when using tables that undergo a lot of writes.
+
+This PostgreSQL issue is explained in more detail in the article 
+["Postgres Job Queues & Failure By MVCC"](https://brandur.org/postgres-queues).
 
 ## Installation
 
@@ -140,7 +158,7 @@ For example this is how a worker can be gracefully stopped in
 ```clj
 (.addShutdownHook (Runtime/getRuntime)
                       (Thread. #(do
-                                 ; stop the worker (before any other services which still running jobs may depend on)
+                                 ; stop the worker before other services (to not break jobs in progress)
                                  (doto worker b/interrupt b/join)
                                  
                                  ; stop other services
