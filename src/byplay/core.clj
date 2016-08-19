@@ -154,7 +154,7 @@
            [exception (-mark-job conn job job-state-failed)]
            (-mark-job conn job job-state-done)))))))
 
-;; Worker
+; Worker
 (defprotocol WorkerProtocol
   (start [_] "Starts working in background threads.")
   (interrupt [_]

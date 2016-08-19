@@ -10,6 +10,48 @@
 
 (use-fixtures :once with-database)
 
+(defn schedule-jobs
+  [jobs-num job & args]
+  (debug-time
+    (str "Schedule " jobs-num " " job "'s")
+    (with-open [conn (jdbc/connection ds)]
+      (jdbc/atomic
+        conn
+        (dotimes [_ jobs-num]
+          (apply b/schedule (jdbc.proto/connection conn) job args)))))
+
+  ; seems that otherwise tests can sometimes take much longer
+  (debug-time
+    "VACUUM FULL"
+    (elapse #(with-open [conn (jdbc/connection ds)]
+              (jdbc/execute conn "VACUUM FULL")))))
+
+(defn start-worker
+  "Starts working on several threads until queue is empty.
+  On timeout worker will be asked to stop.
+  Returns a tuple: worker, vector of acks, elapsed time in msec."
+  ([dbspec config] (start-worker dbspec config nil))
+  ([dbspec config timeout]
+   (let [acks (atom [])
+         worker (b/new-worker dbspec
+                              (merge config {:on-fail (fn on-fail [_worker _exc _job]
+                                                        (assert nil "job fail is not expected"))
+                                             :on-ack  (fn on-ack [_worker ack]
+                                                        (if (nil? ack)
+                                                          (.interrupt (Thread/currentThread)) ; stop thread on queue exhaustion
+                                                          (swap! acks conj ack)))}))
+         [_ elapsed] (debug-time
+                       (str "Work on " (:threads-num config) " threads")
+                       (elapse #(do
+                                 (when timeout
+                                   (future
+                                     (Thread/sleep timeout)
+                                     (b/interrupt worker)))
+
+                                 (b/start worker)
+                                 (b/join worker))))]
+     [worker @acks elapsed])))
+
 (defdbtest
   "worker does not automatically start"
   (with-open [jdbc-conn (.getConnection ds)]
@@ -19,23 +61,6 @@
                               (assert nil "job must not be processed until worker is started"))})
 
   (sleep-politely 50))
-
-(defn start-worker
-  "Starts working on several threads until queue is empty.
-  Returns a tuple: worker, vector of acks, elapsed time in msec."
-  [dbspec config]
-  (let [acks (atom [])
-        worker (b/new-worker dbspec
-                             (merge config {:on-fail (fn on-fail [_worker _exc _job]
-                                                       (assert nil "job fail is not expected"))
-                                            :on-ack  (fn on-ack [_worker ack]
-                                                       (if (nil? ack)
-                                                         (.interrupt (Thread/currentThread)) ; stop thread on queue exhaustion
-                                                         (swap! acks conj ack)))}))
-        [_ elapsed] (debug-time
-                      (str "Work on " (:threads-num config) " threads")
-                      (elapse #(doto worker b/start b/join)))]
-    [worker @acks elapsed]))
 
 (defdbtest
   "worker with several threads on several queues: each good job is performed strictly once"
@@ -90,16 +115,6 @@
             {:id 2 :queue :queue-b :job "unit.fixtures.jobs/good-job" :args "(2)" :state b/job-state-done}
             {:id 3 :queue :queue-b :job "unit.fixtures.jobs/good-job" :args "(3)" :state b/job-state-done}]
            acks))))
-
-(defn schedule-jobs
-  [jobs-num job & args]
-  (debug-time
-    (str "Schedule " jobs-num " " job "'s")
-    (with-open [conn (jdbc/connection ds)]
-      (jdbc/atomic
-        conn
-        (dotimes [_ jobs-num]
-          (apply b/schedule (jdbc.proto/connection conn) job args))))))
 
 (defn test-worker-with-several-threads-finishes-faster-that-a-single-threaded-worker
   [queues]
