@@ -1,7 +1,8 @@
 ; Prettify test reports
 (ns unit.reporter
   (:require
-    [clojure.test :refer [report with-test-out inc-report-counter *testing-contexts* testing-contexts-str testing-vars-str *stack-trace-depth*]]
+    [clojure.test :refer [report with-test-out inc-report-counter *testing-contexts* *testing-vars*
+                          testing-contexts-str testing-vars-str *stack-trace-depth*]]
     [clojure.stacktrace :as stack]))
 
 ; Change the report multimethod to ignore namespaces that don't contain any tests.
@@ -21,23 +22,24 @@
 (def ansi-red "\u001B[31m")
 (def ansi-yellow "\u001B[33m")
 
-; Summary reporting with color
-(defmethod report :summary [m]
-  (try
-    (print ansi-bold)
-    (when (not (every? zero? [(:fail m) (:error m)]))
-      (print ansi-red))
-
-    (with-test-out
-      (println "\nRan" (:test m) "tests containing"
-               (+ (:pass m) (:fail m) (:error m)) "assertions.")
-      (println (:fail m) "failures," (:error m) "errors."))
-
-    (finally
-      (print ansi-reset))))
-
 ; Error reporting with color
+(def failed-tests (atom []))
+
+(defn testing-vars-short-str
+  "Returns a string representation of the current test."
+  []
+  (assert (= (count *testing-vars*) 1) "reporter doesn't know what to do in this case :/")
+  (str
+    (ns-name (:ns (meta (first *testing-vars*)))) "/"
+    (:name (meta (first *testing-vars*)))))
+
+(defn add-failed-test!
+  []
+  (swap! failed-tests conj (testing-vars-short-str)))
+
 (defmethod report :fail [m]
+  (add-failed-test!)
+
   (try
     (print ansi-red)
     (with-test-out
@@ -53,6 +55,8 @@
       (print ansi-reset))))
 
 (defmethod report :error [m]
+  (add-failed-test!)
+
   (try
     (print ansi-red)
     (with-test-out
@@ -67,6 +71,29 @@
         (if (instance? Throwable actual)
           (stack/print-cause-trace actual *stack-trace-depth*)
           (prn actual))))
+
+    (finally
+      (print ansi-reset))))
+
+; Summary reporting with color
+(defmethod report :summary [m]
+  (try
+    (print ansi-bold)
+    (when (not (every? zero? [(:fail m) (:error m)]))
+      (print ansi-red))
+
+    (with-test-out
+      (println "\nRan" (:test m) "tests containing"
+               (+ (:pass m) (:fail m) (:error m)) "assertions.")
+      (println (:fail m) "failures," (:error m) "errors.")
+
+      ; print names of failed tests
+      (print ansi-reset)
+      (print ansi-red)
+      (println (clojure.string/join "\n" (distinct @failed-tests)))
+
+      ; clear a list of failed tests (important if tests are automatically rerun)
+      (reset! failed-tests []))
 
     (finally
       (print ansi-reset))))
