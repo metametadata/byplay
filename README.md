@@ -24,7 +24,7 @@ The parallel queue consumption is based on a new
     - In case of exception inside a job all job's database statements are rolled back 
     and a job is marked *failed*. Thus if a job is marked *new* or *failed* then 
     none of its database statements have been committed yet.
-    - Scheduling can be executed in a same transaction a data needed for a job is committed.
+    - Scheduling can be executed in a transaction where a data needed for a job is committed.
     So that a worker will not pick up the job before the database commits.
 - **Multiple queues**: jobs can be scheduled to different queues/tags.
 E.g. you can schedule heavy jobs into a separate "slow" queue/worker 
