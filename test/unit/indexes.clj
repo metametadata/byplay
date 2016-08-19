@@ -30,7 +30,7 @@
         (is (nil? (b/work-once jdbc-conn)) "there must be no jobs left after stopping a worker"))
 
       (is (< actual-error max-expected-error))
-      (println "ideal-expected-msec =" ideal-elapsed "elapsed =" elapsed)
+      (println "ideal-elapsed =" ideal-elapsed "elapsed =" elapsed)
       (println "Expected error =" max-expected-error "actual =" actual-error))))
 
 (defdbtest

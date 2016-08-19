@@ -130,14 +130,14 @@
                                                    :polling-interval polling-interval})
 
           ; assert
-          ideal-expected-msec (/ (* jobs-num (+ job-delay polling-interval)) threads-num)
-          actual-error (Math/abs (- (/ elapsed ideal-expected-msec) 1)) ; percent
+          ideal-elapsed (/ (* jobs-num (+ job-delay polling-interval)) threads-num)
+          actual-error (Math/abs (- (/ elapsed ideal-elapsed) 1)) ; percent
           max-expected-error 0.3]
       (with-open [jdbc-conn (.getConnection ds)]
         (is (nil? (b/work-once jdbc-conn [:test-queue])) "just in case: there must be no jobs left after stopping a worker"))
       (is (= :terminated (b/state worker)) "just in case")
       (is (< actual-error max-expected-error))
-      (println "ideal-expected-msec-elapsed =" ideal-expected-msec "elapsed =" elapsed)
+      (println "ideal-elapsed =" ideal-elapsed "elapsed =" elapsed)
       (println "Expected error =" max-expected-error "actual =" actual-error))))
 
 (defdbtest
