@@ -56,7 +56,7 @@
                  (-fully-qualified-name job-var)
                  (pr-str args)
                  job-state-new
-                 (queue-clj->sql queue)]))
+                 (queue-clj->sql (or queue :default))]))
 
 (defn schedule
   "Puts the job into the queue specified in the job's metadata at `::queue`."

@@ -101,7 +101,7 @@ There are different ways to obtain such instance:
 Define a job function:
 
 ```clj
-(defn ^{::b/queue :my-queue} my-job
+(defn my-job
   [ctx x y z]
   (do-something-in-job-transaction (:jdbc-conn ctx))
   ,,,)
@@ -109,20 +109,28 @@ Define a job function:
 
 Here `(:jdbc-conn ctx)` is a JDBC connection with the current transaction in progress.
 
-Queue metadata is optional.
-
 ### Scheduling
 
-Put the job into `:my-queue` (as specified in job's metadata at `:byplay.core/queue` key):
+Put the job into `:default` queue:
 
 ```clj
 (b/schedule jdbc-conn #'my-job 1 2 3)
 ```
 
-You can also explicitly specify another queue using `schedule-to`:
+Explicitly specify another queue using `schedule-to`:
 
 ```clj
-(b/schedule-to jdbc-conn :another-queue #'my-job 1 2 3)
+(b/schedule-to jdbc-conn :my-queue #'my-job 1 2 3)
+```
+
+Or specify the queue in the job metadata at `:byplay.core/queue` key:
+
+```clj
+(defn ^{::b/queue :my-queue} my-job
+  [ctx x y z]
+  ,,,)
+
+(b/schedule jdbc-conn #'my-job 1 2 3)
 ```
 
 ### Working

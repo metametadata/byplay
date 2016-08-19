@@ -213,20 +213,20 @@
             j/good-job [(f/arg job-context?) :_rescheduled-data])))))
 
 (defdbtest
-  "job cannot be scheduled without a queue"
+  "job is scheduled to :default queue by default"
   (with-open [jdbc-conn (.getConnection ds)]
-    (is (thrown-with-msg?
-          java.lang.AssertionError
-          #"Assert failed: \(keyword\?"
-          (b/schedule jdbc-conn #'j/job-without-queue)))))
+    (b/schedule jdbc-conn #'j/job-without-queue)
+
+    (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/job-without-queue" :args "nil" :queue :default}
+           (b/work-once jdbc-conn)))))
 
 (defdbtest
-  "job cannot be scheduled to a nil queue"
+  "scheduling to nil queue is the same as scheduling to a default queue"
   (with-open [jdbc-conn (.getConnection ds)]
-    (is (thrown-with-msg?
-          java.lang.AssertionError
-          #"Assert failed: \(keyword\?"
-          (b/schedule-to jdbc-conn nil #'j/good-job)))))
+    (b/schedule-to jdbc-conn nil #'j/job-without-queue)
+
+    (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/job-without-queue" :args "nil" :queue :default}
+           (b/work-once jdbc-conn)))))
 
 (defdbtest
   "job cannot be scheduled to a namespaced queue"
