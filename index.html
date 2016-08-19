@@ -194,7 +194,7 @@ The parallel queue consumption is based on a new
 <li>In case of exception inside a job all job's database statements are rolled back 
 and a job is marked <em>failed</em>. Thus if a job is marked <em>new</em> or <em>failed</em> then 
 none of its database statements have been committed yet.</li>
-<li>Scheduling can be executed in a same transaction a data needed for a job is committed.
+<li>Scheduling can be executed in a transaction where a data needed for a job is committed.
 So that a worker will not pick up the job before the database commits.</li>
 </ul>
 </li>
@@ -386,5 +386,5 @@ By default such exceptions silently kill a background thread. So it's a good pra
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-08-19 22:16:06.484702
+Build Date UTC : 2016-08-19 23:36:15.961081
 -->
