@@ -56,12 +56,12 @@
       (-exec-db-command (str "DROP DATABASE IF EXISTS " db-name))
       (-exec-db-command (str "CREATE DATABASE " db-name))))
 
-  (println "Create connection pool...")
+  ;(println "Create connection pool...")
   (alter-var-root #'ds (fn [_] (h/make-datasource -datasource-options))))
 
 (defn -close-pool
   []
-  (println "Close connection pool...")
+  ;(println "Close connection pool...")
   (h/close-datasource ds))
 
 (defn with-database
