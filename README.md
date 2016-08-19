@@ -33,7 +33,7 @@ in order to not block an execution of more important jobs from a "light" queue.
 - **Small**: the implementation with docstrings is less than 300 LOC.
 
 ## Anti-Features
-It hasn't been proven yet, but Byplay can be susceptible to the same problem as described in Que docs:
+It hasn't been proven yet, but Byplay can experience the problem described in Que docs:
 > Que's job table undergoes a lot of churn when it is under high load, and like any heavily-written table, 
 is susceptible to bloat and slowness if Postgres isn't able to clean it up. The most common cause of this is 
 long-running transactions, so it's recommended to try to keep all transactions against the database housing 
