@@ -23,6 +23,21 @@
     (b/rollback jdbc-conn)
     (b/rollback jdbc-conn)))
 
+(defdbtest
+  "rollback removes migrations table too"
+  (with-open [jdbc-conn (.getConnection ds)]
+    (let [migrations-table-exists? (fn []
+                                     (-> (jdbc.types/->connection jdbc-conn)
+                                         (jdbc/fetch "SELECT to_regclass('byplay_migrations')")
+                                         first :to_regclass nil? not))]
+      (is (migrations-table-exists?) "self test")
+
+      ; act
+      (b/rollback jdbc-conn)
+
+      ; assert
+      (is (not (migrations-table-exists?))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; single queue ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defdbtest
   "work-once on the specified queue returns the done job"

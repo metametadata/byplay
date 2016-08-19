@@ -18,14 +18,16 @@
                          :reporter   (constantly nil)}))
 
 (defn rollback
-  "Removes all Byplay data from the database (if there's any). Note that library's empty migrations table will be left in the database."
+  "Removes all Byplay data from the database (if there's any)."
   [jdbc-conn]
   (let [datastore (ragtime.jdbc/sql-database {:connection jdbc-conn} {:migrations-table -migrations-table})
         migrations-num (count (p/applied-migration-ids datastore))]
     (ragtime.repl/rollback {:datastore  datastore
                             :migrations (ragtime.jdbc/load-resources -migrations-dir)
                             :reporter   (constantly nil)}
-                           migrations-num)))
+                           migrations-num))
+
+  (jdbc/execute (jdbc.types/->connection jdbc-conn) (str "DROP TABLE IF EXISTS " -migrations-table)))
 
 (def ^{:doc "Constant for a new job state."} job-state-new 0)
 (def ^{:doc "Constant for a done job state."} job-state-done 1)
