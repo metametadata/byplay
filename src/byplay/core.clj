@@ -146,8 +146,8 @@
 
   Do not call this function inside an already created transaction because `work-once` will create a new transaction itself.
   Otherwise, your outer transaction will be prematurely committed because nested transactions are not supported by PostgreSQL."
-  ([jdbc-conn] (work-once jdbc-conn nil))
-  ([jdbc-conn queues]
+  ([jdbc-conn] (work-once jdbc-conn {:queues nil}))
+  ([jdbc-conn {:keys [queues] :as _config}]
    (let [conn (jdbc.types/->connection jdbc-conn)]
      (jdbc/atomic
        conn
@@ -205,7 +205,7 @@
             (with-open [conn (jdbc/connection dbspec)]
               (-> conn
                   jdbc.proto/connection
-                  (work-once queues)
+                  (work-once {:queues queues})
                   on-ack)))]
     (doall
       (for [_ (range threads-num)]

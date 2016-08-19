@@ -48,7 +48,7 @@
 
       ; act
       (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/good-job" :args "(1 2)" :queue :test-queue}
-             (b/work-once jdbc-conn [:test-queue])))
+             (b/work-once jdbc-conn {:queues [:test-queue]})))
 
       ; assert
       (is (f/was-called-once j/good-job [(f/arg job-context?) 1 2])))))
@@ -61,7 +61,7 @@
       (b/schedule jdbc-conn #'j/good-job 1 2)
 
       ; act & assert
-      (is (nil? (b/work-once jdbc-conn [:empty-queue])))
+      (is (nil? (b/work-once jdbc-conn {:queues [:empty-queue]})))
       (is (f/was-not-called j/good-job)))))
 
 (defdbtest
@@ -70,10 +70,10 @@
     (f/with-fakes
       (f/patch! #'j/good-job (f/recorded-fake))
       (b/schedule jdbc-conn #'j/good-job 1 2)
-      (b/work-once jdbc-conn [:test-queue])
+      (b/work-once jdbc-conn {:queues [:test-queue]})
 
       ; act & assert
-      (is (nil? (b/work-once jdbc-conn [:test-queue])) "there should be no jobs left")
+      (is (nil? (b/work-once jdbc-conn {:queues [:test-queue]})) "there should be no jobs left")
       (is (f/was-called-once j/good-job [(f/arg job-context?) 1 2])))))
 
 (defdbtest
@@ -89,11 +89,11 @@
 
       ; act
       (is (= {:id 1 :job "unit.fixtures.jobs/good-job" :args "(1 2)" :state b/job-state-done :queue :test-queue}
-             (b/work-once jdbc-conn [:test-queue])))
+             (b/work-once jdbc-conn {:queues [:test-queue]})))
       (is (= {:id 2 :job "unit.fixtures.jobs/good-job" :args "(3 4)" :state b/job-state-done :queue :test-queue}
-             (b/work-once jdbc-conn [:test-queue])))
+             (b/work-once jdbc-conn {:queues [:test-queue]})))
       (is (= {:id 3 :job "unit.fixtures.jobs/another-job" :args "(5 6 \"7\")" :state b/job-state-done :queue :test-queue}
-             (b/work-once jdbc-conn [:test-queue])))
+             (b/work-once jdbc-conn {:queues [:test-queue]})))
 
       ; assert
       (is (f/were-called-in-order
@@ -111,7 +111,7 @@
       (b/schedule jdbc-conn #'j/good-job "expected data")
 
       ; act
-      (is (ack-done? (b/work-once jdbc-conn [:test-queue])))
+      (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})))
 
       ; assert
       (is-aux-data-committed jdbc-conn "expected data"))))
@@ -131,7 +131,7 @@
                                     :job   "unit.fixtures.jobs/another-job"
                                     :args  "(:_data)"
                                     :queue :test-queue}]
-               (b/work-once jdbc-conn [:test-queue])))))))
+               (b/work-once jdbc-conn {:queues [:test-queue]})))))))
 
 (defdbtest
   "on exception job's transaction is rolled back"
@@ -143,7 +143,7 @@
       (b/schedule jdbc-conn #'j/another-job "some data")
 
       ; act
-      (is (ack-failed? (b/work-once jdbc-conn [:test-queue])))
+      (is (ack-failed? (b/work-once jdbc-conn {:queues [:test-queue]})))
 
       ; assert
       (is-aux-data-empty jdbc-conn))))
@@ -155,11 +155,11 @@
       (f/patch! #'j/another-job (fn [_ _]
                                   (throw (ex-info "expected" {}))))
       (b/schedule jdbc-conn #'j/another-job :_data)
-      (b/work-once jdbc-conn [:test-queue])
+      (b/work-once jdbc-conn {:queues [:test-queue]})
 
       ; act and assert
       (f/patch! #'j/another-job (f/recorded-fake))
-      (is (nil? (b/work-once jdbc-conn [:test-queue])))
+      (is (nil? (b/work-once jdbc-conn {:queues [:test-queue]})))
       (is (f/was-not-called j/another-job)))))
 
 (defdbtest
@@ -172,7 +172,7 @@
       (b/schedule jdbc-conn #'j/another-job "some data")
 
       ; act
-      (is (ack-failed? (b/work-once jdbc-conn [:test-queue])))
+      (is (ack-failed? (b/work-once jdbc-conn {:queues [:test-queue]})))
 
       ; assert
       (is-aux-data-empty jdbc-conn))))
@@ -186,10 +186,10 @@
                                   (b/schedule (:jdbc-conn ctx) #'j/good-job 1 2)))
 
       (b/schedule jdbc-conn #'j/another-job :_data)
-      (is (ack-done? (b/work-once jdbc-conn [:test-queue])) "self test")
+      (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})) "self test")
 
       ; act & assert
-      (is (ack-done? (b/work-once jdbc-conn [:test-queue])))
+      (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})))
       (is (f/was-called-once j/good-job [(f/arg job-context?) 1 2])))))
 
 (defdbtest
@@ -202,10 +202,10 @@
                                   (throw (Exception. "expected exception"))))
 
       (b/schedule jdbc-conn #'j/another-job :_data)
-      (is (ack-failed? (b/work-once jdbc-conn [:test-queue])) "self test")
+      (is (ack-failed? (b/work-once jdbc-conn {:queues [:test-queue]})) "self test")
 
       ; act & assert
-      (is (nil? (b/work-once jdbc-conn [:test-queue])))
+      (is (nil? (b/work-once jdbc-conn {:queues [:test-queue]})))
       (is (f/was-not-called j/good-job)))))
 
 (defdbtest
@@ -217,31 +217,15 @@
                                                  (b/schedule (:jdbc-conn ctx) #'j/good-job :_rescheduled-data))]))
 
       (b/schedule jdbc-conn #'j/good-job :_first-data)
-      (b/work-once jdbc-conn [:test-queue])
+      (b/work-once jdbc-conn {:queues [:test-queue]})
 
       ; act
-      (b/work-once jdbc-conn [:test-queue])
+      (b/work-once jdbc-conn {:queues [:test-queue]})
 
       ; assert
       (is (f/were-called-in-order
             j/good-job [(f/arg job-context?) :_first-data]
             j/good-job [(f/arg job-context?) :_rescheduled-data])))))
-
-(defdbtest
-  "job is scheduled to :default queue by default"
-  (with-open [jdbc-conn (.getConnection ds)]
-    (b/schedule jdbc-conn #'j/job-without-queue)
-
-    (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/job-without-queue" :args "nil" :queue :default}
-           (b/work-once jdbc-conn)))))
-
-(defdbtest
-  "scheduling to nil queue is the same as scheduling to a default queue"
-  (with-open [jdbc-conn (.getConnection ds)]
-    (b/schedule-to jdbc-conn nil #'j/job-without-queue)
-
-    (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/job-without-queue" :args "nil" :queue :default}
-           (b/work-once jdbc-conn)))))
 
 (defdbtest
   "job cannot be scheduled to a namespaced queue"
@@ -290,15 +274,15 @@
 
       ; act & assert
       (is (= {:id 1 :job "unit.fixtures.jobs/good-job" :args "(1 2)" :state b/job-state-done :queue :queue1}
-             (b/work-once jdbc-conn [:queue1])))
+             (b/work-once jdbc-conn {:queues [:queue1]})))
       (is (f/was-called-once j/good-job [(f/arg job-context?) 1 2]))
 
       (is (= {:id 2 :job "unit.fixtures.jobs/good-job" :args "(3 4)" :state b/job-state-done :queue :queue2}
-             (b/work-once jdbc-conn [:queue2])))
+             (b/work-once jdbc-conn {:queues [:queue2]})))
       (is (f/was-called j/good-job [(f/arg job-context?) 3 4]))
 
       (is (= {:id 3 :job "unit.fixtures.jobs/another-job" :args "(5 6 \"7\")" :state b/job-state-done :queue :queue3}
-             (b/work-once jdbc-conn [:queue3])))
+             (b/work-once jdbc-conn {:queues [:queue3]})))
       (is (f/was-called-once j/another-job [(f/arg job-context?) 5 6 "7"])))))
 
 (defdbtest
@@ -314,7 +298,7 @@
     (b/schedule-to jdbc-conn :queue-c #'j/good-job 6)
 
     ; act & assert
-    (let [work #(b/work-once jdbc-conn [:queue-c :queue-a :queue-b])]
+    (let [work #(b/work-once jdbc-conn {:queues [:queue-c :queue-a :queue-b]})]
       (is (= {:id 4 :queue :queue-c :job "unit.fixtures.jobs/good-job" :args "(4)" :state b/job-state-done}
              (work)))
       (is (= {:id 5 :queue :queue-c :job "unit.fixtures.jobs/bad-job" :args "(5)" :state b/job-state-failed}
@@ -377,6 +361,22 @@
   "work-once with [] queues works on all queues"
   (test-work-once-works-on-all-queues []))
 
+(defdbtest
+  "job is scheduled to :default queue by default"
+  (with-open [jdbc-conn (.getConnection ds)]
+    (b/schedule jdbc-conn #'j/job-without-queue)
+
+    (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/job-without-queue" :args "nil" :queue :default}
+           (b/work-once jdbc-conn)))))
+
+(defdbtest
+  "scheduling to nil queue is the same as scheduling to a default queue"
+  (with-open [jdbc-conn (.getConnection ds)]
+    (b/schedule-to jdbc-conn nil #'j/job-without-queue)
+
+    (is (= {:state b/job-state-done :id 1 :job "unit.fixtures.jobs/job-without-queue" :args "nil" :queue :default}
+           (b/work-once jdbc-conn)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; transactions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defdbtest
   "scheduling can be rolled back by an outer transaction"
@@ -389,7 +389,7 @@
         (jdbc/set-rollback! conn)))
 
     ; assert
-    (is (nil? (b/work-once jdbc-conn [:test-queue])))))
+    (is (nil? (b/work-once jdbc-conn {:queues [:test-queue]})))))
 
 (defdbtest
   "successful work will prematurely commit an \"outer transaction\" (using jdbc.core/atomic)"
@@ -405,7 +405,7 @@
           (with-open [jdbc-conn (.getConnection ds)]
             (is-aux-data-empty jdbc-conn))
 
-          (is (ack-done? (b/work-once jdbc-conn [:test-queue])) "self test")
+          (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})) "self test")
 
           (with-open [jdbc-conn (.getConnection ds)]
             (is-aux-data-committed jdbc-conn "expected data")))))))
@@ -427,7 +427,7 @@
           (with-open [jdbc-conn (.getConnection ds)]
             (is-aux-data-empty jdbc-conn))
 
-          (is (ack-done? (b/work-once jdbc-conn [:test-queue])) "self test")
+          (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})) "self test")
 
           (with-open [jdbc-conn (.getConnection ds)]
             (is-aux-data-committed jdbc-conn "expected data")))))))
@@ -444,7 +444,7 @@
       (let [conn (jdbc.types/->connection jdbc-conn)]
         (jdbc/atomic
           conn
-          (is (ack-done? (b/work-once jdbc-conn [:test-queue])))
+          (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})))
 
           ; assert
           (is-aux-data-committed jdbc-conn "expected data")
@@ -453,7 +453,7 @@
   ; just in case create a new connection
   (with-open [jdbc-conn (.getConnection ds)]
     (is-aux-data-committed jdbc-conn "expected data")
-    (is (nil? (b/work-once jdbc-conn [:test-queue])))))
+    (is (nil? (b/work-once jdbc-conn {:queues [:test-queue]})))))
 
 (defdbtest
   "successful work cannot be rolled back by an \"outer transaction\" (using raw BEGIN..ROLLBACK)"
@@ -468,7 +468,7 @@
         (try
           (.setAutoCommit jdbc-conn false)                  ; see https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#disable_auto_commit
           (jdbc/execute conn "BEGIN")
-          (is (ack-done? (b/work-once jdbc-conn [:test-queue])))
+          (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})))
           (insert-aux-data! jdbc-conn "unexpected data")
 
           (finally
@@ -478,7 +478,7 @@
   ; just in case create a new connection
   (with-open [jdbc-conn (.getConnection ds)]
     (is-aux-data-committed jdbc-conn "expected data")
-    (is (nil? (b/work-once jdbc-conn [:test-queue])))))
+    (is (nil? (b/work-once jdbc-conn {:queues [:test-queue]})))))
 
 (defdbtest
   "connection in job context is not autocommitable"
@@ -490,4 +490,4 @@
       (b/schedule jdbc-conn #'j/good-job)
 
       ; act
-      (is (ack-done? (b/work-once jdbc-conn [:test-queue]))))))
+      (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]}))))))

@@ -21,10 +21,8 @@
           (apply b/schedule (jdbc.proto/connection conn) job args)))))
 
   ; seems that otherwise tests can sometimes take much longer
-  (debug-time
-    "VACUUM FULL"
-    (elapse #(with-open [conn (jdbc/connection ds)]
-              (jdbc/execute conn "VACUUM FULL")))))
+  (with-open [conn (jdbc/connection ds)]
+    (jdbc/execute conn "VACUUM FULL")))
 
 (defn start-worker
   "Starts working on several threads until queue is empty.
@@ -134,7 +132,7 @@
           actual-error (Math/abs (- (/ elapsed ideal-elapsed) 1)) ; percent
           max-expected-error 0.3]
       (with-open [jdbc-conn (.getConnection ds)]
-        (is (nil? (b/work-once jdbc-conn [:test-queue])) "just in case: there must be no jobs left after stopping a worker"))
+        (is (nil? (b/work-once jdbc-conn)) "just in case: there must be no jobs left after stopping a worker"))
       (is (= :terminated (b/state worker)) "just in case")
       (is (< actual-error max-expected-error))
       (println "ideal-elapsed =" ideal-elapsed "elapsed =" elapsed)
@@ -190,7 +188,7 @@
       ; double check: wait some more time to make sure background threads really weren't working on jobs after worker had stopped
       (sleep-politely max-possible-elapsed)
       (with-open [jdbc-conn (.getConnection ds)]
-        (is (ack-done? (b/work-once jdbc-conn [:test-queue])) "there still must be jobs left in queue"))
+        (is (ack-done? (b/work-once jdbc-conn)) "there still must be jobs left in queue"))
 
       (is (<= 0 actual-error max-expected-error)
           (str "worker must be stopped in time; expected-elapsed = " expected-elapsed "msec, elapsed = " elapsed " msec"))
