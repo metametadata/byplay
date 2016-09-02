@@ -129,7 +129,8 @@
   [conn job]
   (let [job-var (find-var (symbol (:job job)))
         args-list (read-string (:args job))
-        ctx {:jdbc-conn (jdbc.proto/connection conn)}]
+        ctx {:conn      conn
+             :jdbc-conn (jdbc.proto/connection conn)}]
     (assert job-var "job var not found")
     (apply @job-var ctx args-list)))
 

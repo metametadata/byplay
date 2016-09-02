@@ -103,11 +103,17 @@ Define a job function:
 ```clj
 (defn my-job
   [ctx x y z]
-  (do-something-in-job-transaction (:jdbc-conn ctx))
+  (do-something-in-job-transaction1 (:jdbc-conn ctx))
+  
+  ; or if you use funcool/clojure.jdbc JDBC wrapper:
+  (do-something-in-job-transaction2 (:conn ctx))
   ,,,)
 ```
 
-Here `(:jdbc-conn ctx)` is a JDBC connection with the current transaction in progress.
+Here `(:jdbc-conn ctx)` is a JDBC connection with the current transaction in progress and
+`(:conn ctx)` is the same connection wrapped by [funcool/clojure.jdbc](https://funcool.github.io/clojure.jdbc/latest/#connection-parameters)
+connection instance.
+
 
 ### Scheduling
 

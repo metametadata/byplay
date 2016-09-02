@@ -6,6 +6,7 @@
     [unit.fixtures.jobs :as j]
     [unit.utils :refer :all]
     [jdbc.core :as jdbc]
+    [jdbc.proto]
     [jdbc.types]))
 
 (use-fixtures :once with-database)
@@ -259,6 +260,22 @@
       ; assert
       (is (ack-done? (b/work-once jdbc-conn)))
       (is-aux-data-committed jdbc-conn expected-aux-data))))
+
+(defdbtest
+  "funcool/clojure.jdbc connection :conn can also be used inside the job"
+  (with-open [jdbc-conn (.getConnection ds)]
+    (f/with-fakes
+      (f/patch! #'j/good-job (fn [ctx data]
+                               (is (= (:jdbc-conn ctx) (jdbc.proto/connection (:conn ctx)))
+                                   "raw connection must be wrapped by the high-level connection instance")
+                               (insert-aux-data! (jdbc.proto/connection (:conn ctx)) data)))
+      (b/schedule jdbc-conn #'j/good-job "expected data")
+
+      ; act
+      (is (ack-done? (b/work-once jdbc-conn {:queues [:test-queue]})))
+
+      ; assert
+      (is-aux-data-committed jdbc-conn "expected data"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; several queues ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defdbtest
