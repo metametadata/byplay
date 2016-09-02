@@ -48,7 +48,7 @@ This PostgreSQL issue is explained in more detail in the article
 Add dependency to your project:
 
 ```clj
-[byplay "0.3.0"]
+[byplay "0.4.0"]
 ```
 
 Require a namespace:
