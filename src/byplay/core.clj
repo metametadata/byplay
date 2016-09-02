@@ -51,7 +51,7 @@
   (str (ns-name (:ns (meta v))) "/" (:name (meta v))))
 
 (defn schedule-to
-  "Puts the job into the specified queue."
+  "Puts the job into the specified queue. If `nil` queue is specified then job will be scheduled to `:default` queue."
   [jdbc-conn queue job-var & args]
   (jdbc/execute (jdbc.types/->connection jdbc-conn)
                 ["INSERT INTO byplay (job, args, state, queue) values (?, ?, ?, ?)"
@@ -61,7 +61,8 @@
                  (queue-clj->sql (or queue :default))]))
 
 (defn schedule
-  "Puts the job into the queue specified in the job's metadata at `::queue`."
+  "Puts the job into the queue specified in the job's metadata at `::queue`.
+  If no queue is specified then job will be scheduled to `:default` queue."
   [jdbc-conn job-var & args]
   (let [queue (::queue (meta job-var))]
     (apply schedule-to jdbc-conn queue job-var args)))
