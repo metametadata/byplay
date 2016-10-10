@@ -213,7 +213,7 @@
   "job can schedule itself"
   (with-open [jdbc-conn (.getConnection ds)]
     (f/with-fakes
-      (f/patch! #'j/good-job (f/recorded-fake [f/any?
+      (f/patch! #'j/good-job (f/recorded-fake [f/any
                                                (fn [ctx _data]
                                                  (b/schedule (:jdbc-conn ctx) #'j/good-job :_rescheduled-data))]))
 

@@ -238,7 +238,7 @@
   "worker: on-ack will be called after on-fail"
   (f/with-fakes
     (let [on-fail (f/recorded-fake)
-          on-ack (f/recorded-fake [[f/any? f/any?] (fn [_worker _ack]
+          on-ack (f/recorded-fake [[f/any f/any] (fn [_worker _ack]
                                                      (.interrupt (Thread/currentThread)))])]
       (with-open [jdbc-conn (.getConnection ds)]
         (b/schedule jdbc-conn #'j/bad-job "expected exception"))
@@ -251,8 +251,8 @@
         b/join)
 
       ; assert
-      (is (f/were-called-in-order on-fail f/any?
-                                  on-ack f/any?))
+      (is (f/were-called-in-order on-fail f/any
+                                  on-ack f/any))
       (is (= 2 (count (f/calls)))))))
 
 (defdbtest

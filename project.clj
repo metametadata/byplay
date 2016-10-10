@@ -11,7 +11,7 @@
 
                  [ragtime "0.6.3"]]
 
-  :profiles {:test {:dependencies [[clj-fakes "0.7.0"]
+  :profiles {:test {:dependencies [[clj-fakes "0.8.0"]
 
                                    [hikari-cp "1.7.3" :exclusions [org.slf4j/slf4j-api]]
 
