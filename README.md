@@ -43,6 +43,10 @@ but bears emphasizing when using tables that undergo a lot of writes.
 This PostgreSQL issue is explained in more detail in the article 
 ["Postgres Job Queues & Failure By MVCC"](https://brandur.org/postgres-queues).
 
+## Status
+
+Alpha version. The library hasn't been used in production yet. But it has a nice suite of tests.
+
 ## Installation
 
 Add dependency to your project:
