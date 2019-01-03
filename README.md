@@ -13,7 +13,7 @@ The project is mostly inspired by [Que](https://github.com/chanks/que),
 ## Features
 - **Durability**: queue can survive app restarts because it is stored inside a PostgreSQL table.
 All done and failed jobs are left in a table
-so that at any time user is able inspect, retry or purge them manually.
+so that at any time user is able to inspect, retry or purge them manually.
 - **Embedment**: queue consumption worker can be easily started in a background thread.
 - **Parallelism**: queue can be consumed by several threads on different machines to better utilize multiple CPU cores.
 The parallel queue consumption is based on a new
